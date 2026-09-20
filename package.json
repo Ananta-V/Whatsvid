@@ -1,0 +1,16 @@
+{
+  "name": "whatsvid",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Production-grade video clip downloader — YouTube & Instagram",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "NODE_ENV=development node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.6.0",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0"
+  }
+}

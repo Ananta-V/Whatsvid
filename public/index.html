@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<title>WhatsVid · Download videos</title>
+<style>
+/* ── Tokens ─────────────────────────────────────── */
+:root {
+  --bg:       #0a0a0f;
+  --surface:  #111118;
+  --raised:   #18181f;
+  --border:   #26262e;
+  --border2:  #2f2f3a;
+  --text:     #f0f0f5;
+  --sub:      #7c7c8e;
+  --dim:      #4a4a5a;
+  --acc:      #7b68ee;    /* medium slate purple — distinctive, not acid-green */
+  --acc-dim:  #3d3580;
+  --acc-glow: rgba(123,104,238,.18);
+  --red:      #e05c6e;
+  --green:    #4caf7d;
+  --r-card:   18px;
+  --r-input:  12px;
+  --r-pill:   100px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { /* already dark — keep */ }
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── Layout ─────────────────────────────────────── */
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 16px 48px;
+}
+
+/* grid noise texture via CSS — subtle, not gradient-wash */
+.shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse 60% 40% at 50% 0%, rgba(123,104,238,.12) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.content { position: relative; z-index: 1; width: 100%; max-width: 560px; }
+
+/* ── Header ─────────────────────────────────────── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 0 56px;
+}
+
+.wordmark {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wordmark-icon {
+  width: 28px; height: 28px;
+  background: var(--acc);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+}
+
+.status-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--sub);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-badge::before {
+  content: "";
+  display: block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+}
+
+/* ── Hero ────────────────────────────────────────── */
+.hero { margin-bottom: 32px; }
+
+.hero h1 {
+  font-size: clamp(32px, 8vw, 52px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -.04em;
+  color: var(--text);
+}
+
+.hero h1 em {
+  font-style: normal;
+  color: var(--acc);
+}
+
+.hero p {
+  margin-top: 12px;
+  color: var(--sub);
+  font-size: 14px;
+  max-width: 400px;
+}
+
+/* ── Platform tabs ───────────────────────────────── */
+.platform-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.ptab {
+  flex: 1;
+  height: 44px;
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--sub);
+  font: 600 13px/1 inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: border-color .15s, color .15s, background .15s;
+}
+
+.ptab svg { flex-shrink: 0; }
+
+.ptab.active {
+  background: var(--acc-glow);
+  border-color: var(--acc);
+  color: var(--text);
+}
+
+.ptab:not(.active):hover {
+  border-color: var(--border2);
+  color: var(--text);
+}
+
+/* ── Card ────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: 22px;
+}
+
+/* ── Form fields ─────────────────────────────────── */
+.field { margin-bottom: 16px; }
+
+.field-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sub);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  margin-bottom: 7px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.field-label span { font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+input[type="url"],
+input[type="text"],
+select {
+  width: 100%;
+  height: 50px;
+  background: var(--raised);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-input);
+  color: var(--text);
+  font: 14px/1 inherit;
+  padding: 0 14px;
+  outline: none;
+  appearance: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+input[type="url"]:focus,
+input[type="text"]:focus,
+select:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 3px var(--acc-glow);
+}
+
+/* Quality select arrow */
+.select-wrap { position: relative; }
+.select-wrap::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0; height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--sub);
+  pointer-events: none;
+}
+select { padding-right: 36px; cursor: pointer; }
+select option { background: var(--raised); }
+
+/* ── Row layout ──────────────────────────────────── */
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ── Clip toggle ─────────────────────────────────── */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-label { font-size: 13px; font-weight: 600; }
+.toggle-sub { font-size: 11px; color: var(--sub); margin-top: 2px; }
+
+.toggle {
+  width: 40px; height: 22px;
+  background: var(--raised);
+  border: 1.5px solid var(--border2);
+  border-radius: var(--r-pill);
+  position: relative;
+  flex-shrink: 0;
+  transition: background .2s, border-color .2s;
+}
+.toggle::after {
+  content: "";
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--dim);
+  transition: transform .2s, background .2s;
+}
+
+.toggle-row.on .toggle { background: var(--acc); border-color: var(--acc); }
+.toggle-row.on .toggle::after { transform: translateX(18px); background: #fff; }
+
+/* ── Clip fields (hidden by default) ────────────── */
+.clip-fields { display: none; }
+.clip-fields.show { display: block; }
+
+/* ── Presets ─────────────────────────────────────── */
+.presets {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.preset {
+  background: transparent;
+  color: var(--sub);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 6px 12px;
+  font: 12px/1 inherit;
+  cursor: pointer;
+  transition: border-color .12s, color .12s, background .12s;
+}
+.preset:hover, .preset.active {
+  background: var(--acc-glow);
+  border-color: var(--acc);
+  color: var(--text);
+}
+
+/* ── Action button ───────────────────────────────── */
+.btn-primary {
+  width: 100%;
+  height: 54px;
+  border: 0;
+  border-radius: var(--r-input);
+  background: var(--acc);
+  color: #fff;
+  font: 700 15px/1 inherit;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: opacity .15s, transform .1s;
+}
+.btn-primary:hover { opacity: .9; }
+.btn-primary:active { transform: scale(.985); }
+.btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+/* ── Progress ────────────────────────────────────── */
+.progress { display: none; margin-top: 18px; }
+.progress.show { display: block; }
+
+.progress-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--sub);
+  margin-bottom: 8px;
+}
+
+.bar { height: 3px; background: var(--raised); border-radius: 99px; overflow: hidden; }
+.fill {
+  height: 100%;
+  width: 0;
+  background: var(--acc);
+  border-radius: 99px;
+  transition: width .3s ease;
+}
+
+/* ── Result ──────────────────────────────────────── */
+.result {
+  display: none;
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: var(--raised);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.result.show { display: flex; }
+.result-info strong { font-size: 13px; display: block; }
+.result-info small { font-size: 11px; color: var(--sub); margin-top: 3px; display: block; }
+
+.btn-dl {
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: 1.5px solid var(--acc);
+  background: var(--acc-glow);
+  color: var(--acc);
+  font: 700 12px/1 inherit;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background .15s;
+}
+.btn-dl:hover { background: var(--acc); color: #fff; }
+
+/* ── Error state ─────────────────────────────────── */
+.error-msg {
+  display: none;
+  margin-top: 12px;
+  padding: 11px 14px;
+  background: rgba(224,92,110,.08);
+  border: 1px solid rgba(224,92,110,.25);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--red);
+}
+.error-msg.show { display: block; }
+
+/* ── Footer ──────────────────────────────────────── */
+footer {
+  margin-top: 28px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--dim);
+}
+
+/* ── Mobile ──────────────────────────────────────── */
+@media (max-width: 480px) {
+  header { padding: 20px 0 40px; }
+  .hero h1 { font-size: 36px; }
+  .card { padding: 18px 16px; }
+  .row-2 { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+<div class="content">
+
+<!-- Header -->
+<header>
+  <div class="wordmark">
+    <div class="wordmark-icon">▶</div>
+    WhatsVid
+  </div>
+  <div class="status-badge">Ready</div>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <h1>Download any<br>video as <em>MP4</em></h1>
+  <p>YouTube or Instagram. Choose quality, optionally clip a section, download instantly.</p>
+</section>
+
+<!-- Platform tabs -->
+<div class="platform-row" role="group" aria-label="Platform">
+  <button class="ptab active" data-platform="youtube" type="button">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8A3 3 0 0 0 2.6 20c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zm-13.9 9.4V8.4L15.8 12l-6.2 3.6z"/>
+    </svg>
+    YouTube
+  </button>
+  <button class="ptab" data-platform="instagram" type="button">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2.2c3.2 0 3.6 0 4.9.1 3.3.2 4.8 1.7 5 5 .1 1.3.1 1.6.1 4.8s0 3.6-.1 4.8c-.2 3.3-1.7 4.8-5 5-1.3.1-1.6.1-4.9.1s-3.6 0-4.8-.1c-3.3-.2-4.8-1.7-5-5C2 15.6 2 15.3 2 12s0-3.6.1-4.8c.2-3.3 1.7-4.8 5-5 1.2-.1 1.6-.1 4.9-.1zM12 0C8.7 0 8.3 0 7.1.1 2.7.3.3 2.7.1 7.1 0 8.3 0 8.7 0 12c0 3.3 0 3.7.1 4.9.2 4.4 2.6 6.8 7 7C8.3 24 8.7 24 12 24s3.7 0 4.9-.1c4.4-.2 6.8-2.6 7-7 .1-1.2.1-1.6.1-4.9s0-3.7-.1-4.9c-.2-4.4-2.6-6.8-7-7C15.7 0 15.3 0 12 0zm0 5.8a6.2 6.2 0 1 0 0 12.4A6.2 6.2 0 0 0 12 5.8zm0 10.2a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-11.8a1.4 1.4 0 1 0 0 2.9 1.4 1.4 0 0 0 0-2.9z"/>
+    </svg>
+    Instagram
+  </button>
+</div>
+
+<!-- Main card -->
+<section class="card">
+
+  <!-- URL -->
+  <div class="field">
+    <div class="field-label">Video URL <span id="url-hint">youtube.com or youtu.be link</span></div>
+    <input type="url" id="url" autocomplete="off" spellcheck="false" placeholder="Paste link here">
+  </div>
+
+  <!-- Quality -->
+  <div class="field">
+    <div class="field-label">Quality</div>
+    <div class="select-wrap">
+      <select id="quality">
+        <option value="best">Best available</option>
+        <option value="1080p">1080p — Full HD</option>
+        <option value="720p" selected>720p — HD</option>
+        <option value="480p">480p — Standard</option>
+        <option value="360p">360p — Small file</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Clip toggle -->
+  <div class="toggle-row" id="clip-toggle" role="switch" aria-checked="false" tabindex="0">
+    <div>
+      <div class="toggle-label">Clip a section</div>
+      <div class="toggle-sub">Set start time and duration</div>
+    </div>
+    <div class="toggle" aria-hidden="true"></div>
+  </div>
+
+  <!-- Clip fields -->
+  <div class="clip-fields" id="clip-fields">
+    <div class="row-2">
+      <div class="field">
+        <div class="field-label">Start time</div>
+        <input type="text" id="start" inputmode="numeric" value="00:00" placeholder="MM:SS" maxlength="8">
+      </div>
+      <div class="field">
+        <div class="field-label">Duration</div>
+        <input type="text" id="duration" inputmode="numeric" value="00:30" placeholder="MM:SS" maxlength="8">
+      </div>
+    </div>
+    <div class="presets">
+      <button class="preset" data-s="15" type="button">15 sec</button>
+      <button class="preset active" data-s="30" type="button">30 sec</button>
+      <button class="preset" data-s="60" type="button">1 min</button>
+      <button class="preset" data-s="120" type="button">2 min</button>
+      <button class="preset" data-s="300" type="button">5 min</button>
+    </div>
+  </div>
+
+  <button class="btn-primary" id="submit" type="button">Download video</button>
+
+  <!-- Progress -->
+  <div class="progress" id="progress">
+    <div class="progress-top">
+      <span id="p-msg">Preparing…</span>
+      <span id="p-pct">0%</span>
+    </div>
+    <div class="bar"><div class="fill" id="fill"></div></div>
+  </div>
+
+  <!-- Error -->
+  <div class="error-msg" id="error"></div>
+
+  <!-- Result -->
+  <div class="result" id="result">
+    <div class="result-info">
+      <strong>Ready to save</strong>
+      <small id="result-meta">MP4</small>
+    </div>
+    <a class="btn-dl" id="dl-link">Save MP4</a>
+  </div>
+
+</section>
+
+<footer>WhatsVid · YouTube & Instagram to MP4</footer>
+
+</div>
+</div>
+
+<script>
+"use strict";
+
+// ── State ──────────────────────────────────────────
+let activePlatform = "youtube";
+let clipMode = false;
+
+// ── Elements ───────────────────────────────────────
+const $url       = document.getElementById("url");
+const $quality   = document.getElementById("quality");
+const $start     = document.getElementById("start");
+const $duration  = document.getElementById("duration");
+const $submit    = document.getElementById("submit");
+const $progress  = document.getElementById("progress");
+const $fill      = document.getElementById("fill");
+const $pMsg      = document.getElementById("p-msg");
+const $pPct      = document.getElementById("p-pct");
+const $error     = document.getElementById("error");
+const $result    = document.getElementById("result");
+const $dlLink    = document.getElementById("dl-link");
+const $resultMeta= document.getElementById("result-meta");
+const $clipToggle= document.getElementById("clip-toggle");
+const $clipFields= document.getElementById("clip-fields");
+const $urlHint   = document.getElementById("url-hint");
+
+// ── Platform tabs ──────────────────────────────────
+document.querySelectorAll(".ptab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".ptab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activePlatform = btn.dataset.platform;
+    $urlHint.textContent = activePlatform === "youtube"
+      ? "youtube.com or youtu.be link"
+      : "instagram.com/reel or /p link";
+    $url.placeholder = activePlatform === "youtube"
+      ? "Paste YouTube link"
+      : "Paste Instagram link";
+    $url.value = "";
+    clearStatus();
+  });
+});
+
+// ── Clip toggle ────────────────────────────────────
+function setClipMode(on) {
+  clipMode = on;
+  $clipToggle.classList.toggle("on", on);
+  $clipToggle.setAttribute("aria-checked", String(on));
+  $clipFields.classList.toggle("show", on);
+}
+
+$clipToggle.addEventListener("click", () => setClipMode(!clipMode));
+$clipToggle.addEventListener("keydown", e => {
+  if (e.key === " " || e.key === "Enter") { e.preventDefault(); setClipMode(!clipMode); }
+});
+
+// ── Time input formatting (MM:SS or HH:MM:SS) ─────
+function formatTime(raw) {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.length <= 2) return "00:" + digits.padStart(2, "0");
+  return digits.slice(0, -2).padStart(2, "0") + ":" + digits.slice(-2);
+}
+
+$start.addEventListener("input", () => { $start.value = formatTime($start.value); });
+$duration.addEventListener("input", () => {
+  $duration.value = formatTime($duration.value);
+  document.querySelectorAll(".preset").forEach(b => b.classList.remove("active"));
+});
+
+// ── Presets ────────────────────────────────────────
+document.querySelectorAll(".preset").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".preset").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    const s = Number(btn.dataset.s);
+    $duration.value = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  });
+});
+
+// ── Utils ──────────────────────────────────────────
+function setProgress(pct, msg) {
+  $fill.style.width = pct + "%";
+  $pPct.textContent = Math.round(pct) + "%";
+  $pMsg.textContent = msg;
+}
+
+function showError(msg) {
+  $error.textContent = msg;
+  $error.classList.add("show");
+}
+
+function clearStatus() {
+  $progress.classList.remove("show");
+  $error.classList.remove("show");
+  $result.classList.remove("show");
+  $error.textContent = "";
+  setProgress(0, "");
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Poll job ───────────────────────────────────────
+async function pollJob(id) {
+  for (;;) {
+    const r = await fetch("/api/jobs/" + id);
+    if (!r.ok) throw new Error("Lost track of your job — try again.");
+    const j = await r.json();
+
+    setProgress(j.progress, j.message);
+
+    if (j.state === "complete") {
+      $dlLink.href = j.download;
+      const qLabel = j.quality === "best" ? "Best quality" : j.quality.toUpperCase();
+      $resultMeta.textContent = `MP4 · ${qLabel} · ${j.platform === "instagram" ? "Instagram" : "YouTube"}`;
+      $result.classList.add("show");
+      return;
+    }
+    if (j.state === "error") throw new Error(j.message);
+    await sleep(700);
+  }
+}
+
+// ── Submit ─────────────────────────────────────────
+$submit.addEventListener("click", async () => {
+  clearStatus();
+
+  const urlVal = $url.value.trim();
+  if (!urlVal) { $url.focus(); return; }
+
+  const body = {
+    url:      urlVal,
+    quality:  $quality.value,
+    clip_mode: clipMode,
+  };
+
+  if (clipMode) {
+    body.start    = $start.value;
+    body.duration = $duration.value;
+  }
+
+  $submit.disabled = true;
+  $progress.classList.add("show");
+  setProgress(0, "Submitting…");
+
+  try {
+    const r = await fetch("/api/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Server error");
+    await pollJob(j.id);
+  } catch (err) {
+    showError(err.message || "Something went wrong. Try again.");
+    setProgress(0, "");
+  } finally {
+    $submit.disabled = false;
+  }
+});
+
+// Allow pressing Enter in URL field to submit
+$url.addEventListener("keydown", e => {
+  if (e.key === "Enter") $submit.click();
+});
+</script>
+</body>
+</html>
