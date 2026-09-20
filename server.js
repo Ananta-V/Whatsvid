@@ -97,7 +97,7 @@ function validUrl(raw) {
     const u = new URL(raw);
     if (!["http:", "https:"].includes(u.protocol)) return false;
     const host = u.hostname.toLowerCase().replace(/^www\./, "");
-    return ALLOWED_HOSTS.has(u.hostname.toLowerCase());
+    return ALLOWED_HOSTS.has(u.hostname.toLowerCase()) || ALLOWED_HOSTS.has(host);
   } catch { return false; }
 }
 
